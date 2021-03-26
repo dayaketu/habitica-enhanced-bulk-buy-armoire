@@ -1,0 +1,71 @@
+function bulkBuyArmoire() {
+
+  /* ========================================== */
+  /* [Users] Required script data to fill in    */
+  /* ========================================== */
+  const USER_ID = "InsertYourUserIdHere"
+  const API_TOKEN = "InsertYourAPITokenHere"
+  const NOTIFICATION_EMAIL = "InsertYourNotificationEmailHere";
+
+  /* ========================================== */
+  /* [Users] Optional customizations to fill in */
+  /* ========================================== */
+  const gpLimit = 2000; //This is the threshold gp to keep in your account and stop buying armoires
+
+  /* ========================================== */
+  /* [Users] Do not edit code below this line   */
+  /* ========================================== */
+  const sleepTime = 3000 //3 seconds.
+  const armoireGPPrice = 100;
+  const totalTimesToBuy = 100; //do not change this, since buying more will make the script to take longer to run and Google limits to 6 minute executions
+  const AUTHOR_ID = "911582a9-d5d5-4ce8-a98b-608af5fa91cb";
+  const SCRIPT_NAME = "Enhanced Bulk Buy Enchanted Armorie";
+  const NEWLINE = "\n";
+  const HEADERS = {
+    "x-client" : AUTHOR_ID + "-" + SCRIPT_NAME,
+    "x-api-user" : USER_ID,
+    "x-api-key" : API_TOKEN,
+  }
+
+  try{
+  
+    var buyArmoireURL = "https://habitica.com/api/v3/user/buy-armoire" 
+    var response
+    var debugString = "";
+
+    var userData = JSON.parse(UrlFetchApp.fetch("https://habitica.com/api/v3/members/" + USER_ID))
+    var currentGP = userData.data.stats.gp;
+    debugString += "Initial GP --> " + Math.floor(currentGP) + NEWLINE + NEWLINE;
+
+    var paramsTemplate = {
+      "method" : "post", 
+      "headers" : HEADERS,
+      "muteHttpExceptions" : true,
+    }
+
+    var counter = 1;
+    while (currentGP >= gpLimit) {
+      response = UrlFetchApp.fetch(buyArmoireURL, paramsTemplate)
+      var result = JSON.parse(response)
+      if (result.data.armoire.type == "experience") {
+        debugString += "You gained " + result.data.armoire.value + " experience." + NEWLINE;
+      } else {
+        debugString += "You gained " + result.data.armoire.type + " " + result.data.armoire.dropText + "." + NEWLINE;
+      }
+      currentGP -= armoireGPPrice;
+
+      if( counter % totalTimesToBuy == 0){
+        debugString += NEWLINE + "Final GP after buying --> " + Math.floor(currentGP);
+        break;
+      }
+      counter++;
+      Utilities.sleep(sleepTime)
+    }
+  } catch (err) {
+    debugString += "err " + err.stack + NEWLINE;
+  } finally {
+    MailApp.sendEmail(NOTIFICATION_EMAIL,SCRIPT_NAME, debugString);
+  }
+  return HtmlService.createHtmlOutput();
+
+}
